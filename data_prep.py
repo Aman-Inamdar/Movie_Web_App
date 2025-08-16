@@ -40,7 +40,7 @@ def load_clean_data(file_path='tmdb_movies.csv'):
     #filtering in order to reduce the response time
     # final shape - ~20k to 30k
 
-    df=df[(df['vote_count']>50) & (df['year']>1980)]
+    df=df[(df['vote_count']>200) & (df['year']>1990)]
     print(f'Filtered Shape: {df.shape}')
 
     #save the files 
