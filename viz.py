@@ -1,28 +1,27 @@
-import matplotlib.pyplot as plt 
-import seaborn as sns 
-import pandas as pd 
-
-#just building the useful plotting functions to plot graphs
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
 
 def plot_revenue_trends(trends_data):
-    df=pd.DataFrame(trends_data)
-    fig,ax=plt.subplots()
-    sns.lineplot(data=df,x='year',y='revenue',ax=ax)
-    ax.set_title("Average Revenue Trends over Years")
-    return fig 
+    df = pd.DataFrame(trends_data)
+    fig = px.line(df, x='year', y='revenue', title='Average Revenue Over Years', template='plotly_dark')
+    fig.update_layout(showlegend=False)
+    return fig
 
 def plot_correlation_heatmap(corr_data):
-    df=pd.DataFrame(corr_data)
-    fig,ax=plt.subplots()
-    sns.heatmap(df,annot=True,cmap='coolwarm',ax=ax)
-    ax.set_title("Feature Correlation")
-    return fig 
+    df = pd.DataFrame(corr_data)
+    fig = px.imshow(df, text_auto=True, color_continuous_scale='RdBu', title='Feature Correlations')
+    return fig
 
 def plot_genre_popularity(genre_data):
-    fig,ax=plt.subplots(figsize=(12,6))
-    genre_data.plot(ax=ax)
-    ax.set_title("Genre Popularity over time")
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    return fig 
+    df = pd.DataFrame(genre_data)
+    fig = go.Figure()
+    for col in df.columns:
+        fig.add_trace(go.Scatter(x=df.index, y=df[col], name=col))
+    fig.update_layout(title='Genre Popularity Over Time', template='plotly_dark', showlegend=True)
+    return fig
 
-
+def plot_runtime_impact(impact_data):
+    df = pd.DataFrame(impact_data)
+    fig = px.bar(df, x='runtime_bin', y=['popularity', 'revenue'], barmode='group', title='Runtime Impact on Popularity and Revenue', template='plotly_dark')
+    return fig
