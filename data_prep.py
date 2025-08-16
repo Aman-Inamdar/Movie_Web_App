@@ -17,6 +17,8 @@ def load_clean_data(file_path='tmdb_movies.csv'):
     df['production_companies']=df['production_companies'].fillna('')
     df['original_language']=df['original_language'].fillna('en')
     df['release_date'] = pd.to_datetime(df['release_date'], errors='coerce')
+    df['tagline']=df['tagline'].fillna('No tagline')
+    df['status']=df['status'].fillna('Released')
     df.dropna(subset=['release_date'], inplace=True)
 
     # Replace zeros with medians
