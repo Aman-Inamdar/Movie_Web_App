@@ -6,6 +6,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from nltk import FreqDist
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import string
 
 def load_data():
@@ -33,7 +34,7 @@ def predict_rating(features): #here features is a dictionary
                             columns=['revenue', 'popularity', 'runtime'])
     #full df -> by concatenating
     input_full = pd.concat([input_df, genres_input], axis=1).reindex(columns=X.columns, fill_value=0)
-    return model.predict(input_full)[0] #returns prediction
+    return round(model.predict(input_full)[0],2) #returns prediction
 
 def get_trends(): #returns the trends 
     df = load_data()
@@ -44,6 +45,7 @@ def get_trends(): #returns the trends
 def get_correlations(): #getting the correlations based on the budget revenue popularity vote avg runtime
     df = load_data()
     corr = df[['budget', 'revenue', 'popularity', 'vote_average', 'runtime']].corr()
+    corr=corr.round(2)
     return corr.to_dict() #returns the ans in the form of dictionary
 
 def genre_popularity_over_time(): #getting the genre popularity over the time
@@ -65,7 +67,36 @@ def extract_keywords_from_overview(movie_title, n=10):#n represents the keywords
     #like ['king':3,'man':2...]
     return freq.most_common(n) #and returns the most common 
 
+def get_sentiment_scores():
+    df = load_data() #load data
+    sia = SentimentIntensityAnalyzer() #initializing the SIA
+    #create sentiment column-> overview apply lambda-> returns polarity scores in range of -1(Negative) to 1(Positive)
+    df['sentiment'] = df['overview'].apply(lambda o: sia.polarity_scores(o)['compound'])
+    #returns scores and title in the form of dict
+    df['sentiment']=df['sentiment'].apply(lambda x: round(x,2))
+    return df[['title', 'sentiment']].to_dict('records')
+
+def get_top_movies(genre=None, year=None, sort_by='popularity', n=10): #Top movies in particular year and genre
+    df = load_data() 
+    #if genre is provided then df['genre'] -> list of genre...check the genre in the list
+    if genre:
+        df = df[df['genres'].apply(lambda x: genre in x)]
+    #year-> extract that df where df['year']==year
+    if year:
+        df = df[df['year'] == year]
+    #returning the dictionary containing these 4 -> sorted wrt to popularity(descending-> top movies first)
+    return df[['title', 'popularity', 'vote_average', 'year']].sort_values(sort_by, ascending=False)[:n].to_dict('records')
+
+def get_runtime_impact():
+    df = load_data()
+    # cutting dataframe into the frames with bins givens where labels also provided
+    df['runtime_bin'] = pd.cut(df['runtime'], bins=[0, 90, 120, 150, 180, 300], labels=['<90', '90-120', '120-150', '150-180', '>180'])
+    #grouping by runtime_bin->
+    impact = df.groupby('runtime_bin',observed=False)[['popularity', 'revenue']].mean().reset_index()
+    impact=impact.round(2)
+    return impact.to_dict('records')
+
 if __name__ == '__main__':
-    print(predict_rating({'revenue': 100000000, 'popularity': 50, 'runtime': 120, 'genres': ['Action']}))
-    print(get_correlations())
-    print(extract_keywords_from_overview('Inception'))
+    print(get_sentiment_scores()[:5])
+    print(get_top_movies(genre='Action', n=5))
+    print(get_runtime_impact())
