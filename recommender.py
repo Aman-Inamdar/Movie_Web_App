@@ -58,21 +58,29 @@ class MovieRecommender:
         rec_df = rec_df[rec_df['sentiment'] > min_sentiment][:n]
         return rec_df[['title', 'vote_average', 'popularity', 'year']].to_dict('records')
 
-    def get_movie_details(self,title):
-        api_key = st.secrets.get("OMDB_API_KEY", "") #extracts the api key from the file
-        if not api_key: #if api key is not there then return blank with trailer
-            return {'actors': [], 'director': '', 'trailer': f"https://www.youtube.com/results?search_query={title}+trailer"}
-        url = f"http://www.omdbapi.com/?t={title}&apikey={api_key}" #url for omdb
-        response = requests.get(url) #it fetches the response if response.status_code==200 and response==True
-        if response.status_code == 200 and response.json().get('Response') == 'True':
-            data = response.json() #captures all the data 
-            return {
-                'actors': data.get('Actors', '').split(', '),
-                'director': data.get('Director', ''),
-                'trailer': f"https://www.youtube.com/results?search_query={title}+trailer"
-            }
-        return {'actors': [], 'director': '', 'trailer': f"https://www.youtube.com/results?search_query={title}+trailer"}
-
+    def get_movie_details(self, title):
+        api_key = st.secrets.get("OMDB_API_KEY", "")
+        details = {'actors': [], 'director': '', 'trailer_id': None}
+        if api_key:
+            url = f"http://www.omdbapi.com/?t={title}&apikey={api_key}"
+            response = requests.get(url)
+            if response.status_code == 200 and response.json().get('Response') == 'True':
+                data = response.json()
+                details['actors'] = data.get('Actors', '').split(', ')
+                details['director'] = data.get('Director', '')
+        # YouTube trailer ID
+        yt_key = st.secrets.get("YOUTUBE_API_KEY", "")
+        if yt_key:
+            yt_url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={title}+official+trailer&type=video&maxResults=1&key={yt_key}"
+            yt_response = requests.get(yt_url)
+            if yt_response.status_code == 200:
+                yt_data = yt_response.json()
+                if yt_data['items']:
+                    details['trailer_id'] = yt_data['items'][0]['id']['videoId']
+        if not details['trailer_id']:
+            details['trailer_id'] = 'dQw4w9WgXcQ'  # Fallback video ID (Rick Roll for testing; replace with real fallback)
+        return details
+    
 if __name__=='__main__':
     import streamlit as st  # For st.secrets in testing
     rec = MovieRecommender()
