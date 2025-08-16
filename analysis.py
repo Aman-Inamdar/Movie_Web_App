@@ -8,6 +8,8 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import string
+import requests
+import streamlit as st
 
 def load_data():
     return pd.read_pickle('processed_movies.pkl')
@@ -95,6 +97,20 @@ def get_runtime_impact():
     impact = df.groupby('runtime_bin',observed=False)[['popularity', 'revenue']].mean().reset_index()
     impact=impact.round(2)
     return impact.to_dict('records')
+
+def get_movies_by_actor(actor_name, api_key=''):
+    df = load_data()
+    api_key = st.secrets.get("OMDB_API_KEY", "")
+    movies = []
+    if api_key:
+        url = f"http://www.omdbapi.com/?s={actor_name}&type=movie&apikey={api_key}"
+        response = requests.get(url)
+        if response.status_code == 200 and response.json().get('Response') == 'True':
+            for item in response.json().get('Search', []):
+                title = item['Title']
+                if title in df['title'].values:
+                    movies.append(df[df['title'] == title][['title', 'year', 'vote_average']].iloc[0].to_dict())
+    return movies[:10]
 
 if __name__ == '__main__':
     print(get_sentiment_scores()[:5])
